@@ -1,0 +1,38 @@
+Atlassian have open-sourced some [general purpose concurrency utilities](https://bitbucket.org/atlassian/atlassian-util-concurrent), including a copy-on-write map.
+
+In comment on [an answer on Stack Overflow](https://stackoverflow.com/a/4298847/116639), an Atlassian developer states:
+
+> In our testing, our CopyOnWriteMap (with an underlying j.u.HashMap) outperformed ConcurrentHashMap for reads.
+
+This project is a quick attempt to benchmark that proposition.
+
+To run the benchmarks, do:
+
+....
+./gradlew --no-daemon clean jmh
+....
+
+The first run will take a while because it will download the universe. After that should be reasonably quick.
+
+Disable the daemon because it caches some wrong stuff and breaks if you change the benchmark code.
+
+One run of the benchmarks gave results like this:
+
+|===
+| Benchmark                 |  Score (ns/op) | Error (ns/op)
+| nothing                   |          5.496 |         0.149
+| getHashMap                |         13.641 |         0.951
+| getConcurrentHashMap      |         14.245 |         0.650
+| getCopyOnWriteMap         |         13.622 |         0.745
+| getSynchronizedHashMap    |       1830.361 |        63.931
+| putHashMap                |         76.278 |         7.015
+| putConcurrentHashMap      |        283.118 |        32.452
+| putCopyOnWriteMap         |  122228945.640 |  59571496.604
+| putSynchronizedHashMap    |       3261.789 |       113.856
+| mixedHashMap              |         17.421 |         0.660
+| mixedConcurrentHashMap    |         29.815 |         0.958
+| mixedCopyOnWriteMap       |     185171.134 |    138735.833
+| mixedSynchronizedHashMap  |       1911.981 |        84.563
+|===
+
+This suggests that for reads, ConcurrentHashMap and CopyOnWriteMap are about the same speed, and not significantly slower than a plain HashMap, whilst much faster than a synchronized HashMap. For writes, of course, the CopyOnWriteMap is substantially slower.
